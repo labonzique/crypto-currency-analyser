@@ -14,7 +14,7 @@ def telegram_bot(token):
     for i in response_text:
         btn = types.KeyboardButton(i)
         markup.add(btn)
-    markup.add(types.KeyboardButton(" Другое "))
+    markup.add(types.KeyboardButton(" Other "))
 
 
 
@@ -28,35 +28,38 @@ def telegram_bot(token):
 
 
     def send_text(message):
+        bm.logg_message(message)
         i = message.text.lower()
         try:
             sell_price = get_price_currency(f'{i.upper()}USDT')
             bot.send_message(
                 message.chat.id,
-                f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\nЦена {i.upper()}: {round(float(sell_price), 4)} USDT")
+                f"{datetime.utcfromtimestamp(message.date).strftime('%Y-%m-%d %H:%M')}\nPrice {i.upper()}: {round(float(sell_price), 4)} USDT")
 
             markup1 = types.InlineKeyboardMarkup(row_width=2)
-            rep1 = types.InlineKeyboardButton("Да", callback_data='yes')
-            rep2 = types.InlineKeyboardButton("Нет", callback_data='no')
+            rep1 = types.InlineKeyboardButton("Yes", callback_data='yes')
+            rep2 = types.InlineKeyboardButton("No", callback_data='no')
             markup1.add(rep1, rep2)
             bot.send_message(
                 message.chat.id,
-                "Еще надо че то?",
+                "Do you need something else?",
                 reply_markup=markup1)
 
         except Exception as ex:
             print(ex)
             bot.send_message(
                 message.chat.id,
-                "Не могу такую найти..\nДавай по новой",
+                "Can't find anything..\nTry again",
                 reply_markup=markup)
 
 
 
     @bot.message_handler(commands=['start'])
     def start_message(message):
+        bm.logg_message(message)
 
-        bot.send_message(message.chat.id, "Здарова заебал, могу расценки показать что ли..", reply_markup=markup)
+        bot.send_message(message.chat.id, "Hi! I'm Crypto bot, I can show you price for currency. "
+                                          "\nOr give you a forecast", reply_markup=markup)
 
         if bm.check_user(message) == True:
             pass
@@ -67,36 +70,36 @@ def telegram_bot(token):
 
     @bot.message_handler(content_types=['text'])
     def chat_message(message):
-
+        bm.logg_message(message)
         if message.text.lower() in list(map(lambda x: x.lower(), response_text)):
             send_text(message)
 
-        elif message.text.lower() == "другое":
-            bot.send_message(message.chat.id, "Напиши название валюты")
+        elif message.text.lower() == "other":
+            bot.send_message(message.chat.id, "Write down the name of currency you want me to find.")
             bot.register_next_step_handler(message, send_text)
 
         else:
-            bot.send_message(message.chat.id, "Ты че еблан? Нормально пиши..", reply_markup=markup)
+            bot.send_message(message.chat.id, "Can't understand you..\nPlease choose one of the options", reply_markup=markup)
 
 
 
     @bot.callback_query_handler(func=lambda call: True)
     def callback_inline(call):
+        bm.logg_message(call.message)
         try:
             if call.message:
+
                 if call.data == 'yes':
-                    bot.send_message(call.message.chat.id, "Выбери, что нужно", reply_markup=markup)
+                    bot.send_message(call.message.chat.id, "Choose the option", reply_markup=markup)
 
 
                 elif call.data == 'no':
-                    bot.send_message(call.message.chat.id, "Пидора ответ))0) \nЯ выключаюсь тогда.")
+                    bot.send_message(call.message.chat.id, "Okay, see you later!")
                     bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                          text="Еще надо че то?", reply_markup=None)
+                                          text="Do you need something else?", reply_markup=None)
 
                 bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
-                                      text="Еще надо че то?", reply_markup=None)
-
-                bot.answer_callback_query(chat_id=call.message.chat.id, show_alert=True, text='GG')
+                                      text="Do you need something else?", reply_markup=None)
 
         except Exception as e:
             pass
